@@ -1,0 +1,11 @@
+{
+  "name": "iPhone 音樂下載器",
+  "short_name": "音樂下載器",
+  "description": "合法音訊下載與本機音樂檔案管理",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#10151d",
+  "theme_color": "#10151d",
+  "lang": "zh-Hant"
+}
