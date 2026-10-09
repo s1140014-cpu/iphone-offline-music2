@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10151d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="音樂下載器">
+  <meta name="description" content="iPhone 音樂下載與檔案整理工具">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <title>音樂下載器</title>
+  <style>
+    :root { color-scheme: dark; --bg:#10151d; --panel:#19222e; --line:#2b394b; --cyan:#00d9ef; --green:#00d5a0; --text:#edf5ff; --muted:#9dafc3; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:linear-gradient(160deg,#10151d,#0b1119); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding:calc(env(safe-area-inset-top) + 18px) 15px calc(env(safe-area-inset-bottom) + 24px); }
+    main { max-width:760px; margin:0 auto; }
+    h1 { margin:0; color:var(--cyan); font-size:26px; letter-spacing:.2px; }
+    .subtitle { color:var(--muted); font-size:13px; line-height:1.6; margin:6px 0 18px; }
+    .panel { background:rgba(25,34,46,.96); border:1px solid var(--line); border-radius:18px; padding:16px; margin:12px 0; box-shadow:0 12px 30px #0002; }
+    h2 { margin:0 0 12px; font-size:17px; }
+    label { display:block; color:#c7d6e7; font-size:13px; margin:10px 0 6px; }
+    input[type=url], input[type=text] { width:100%; background:#0b1119; color:var(--text); border:1px solid #35465b; border-radius:11px; padding:13px 12px; font-size:15px; outline:none; }
+    input:focus { border-color:var(--cyan); }
+    button, .file-label { appearance:none; border:0; border-radius:11px; padding:12px 14px; background:#087f91; color:white; font-weight:650; font-size:14px; cursor:pointer; text-align:center; display:inline-flex; justify-content:center; align-items:center; min-height:44px; }
+    button.secondary, .file-label.secondary { background:#2a3748; }
+    button.danger { background:#8b3441; }
+    button:disabled { opacity:.45; cursor:default; }
+    .row { display:flex; gap:9px; flex-wrap:wrap; margin-top:10px; }
+    .row > button, .row > .file-label { flex:1; }
+    input[type=file] { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; }
+    .hint { color:var(--muted); font-size:12px; line-height:1.55; margin-top:9px; }
+    .status { color:var(--green); font-size:13px; margin-top:10px; overflow-wrap:anywhere; }
+    progress { width:100%; height:12px; margin-top:12px; accent-color:var(--green); }
+    .file-row { border-top:1px solid var(--line); padding:12px 0; }
+    .file-row:first-child { border-top:0; }
+    .file-name { font-weight:650; overflow-wrap:anywhere; }
+    .meta { color:var(--muted); font-size:12px; margin-top:5px; overflow-wrap:anywhere; }
+    .small-actions { display:flex; gap:7px; flex-wrap:wrap; margin-top:8px; }
+    .small-actions button { min-height:36px; padding:8px 10px; font-size:12px; }
+    .empty { color:var(--muted); font-size:13px; padding:8px 0; }
+    footer { color:var(--muted); font-size:11px; line-height:1.6; padding:5px 3px 20px; }
+    .pill { display:inline-block; background:#153640; color:#8cf4ff; padding:4px 8px; border-radius:999px; font-size:11px; margin-left:6px; vertical-align:3px; }
+    @media(min-width:600px) { body { padding-left:24px; padding-right:24px; } .panel { padding:20px; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>♫ 音樂下載器 <span class="pill">iOS</span></h1>
+  <div class="subtitle">直接音訊網址下載 · 匯入 iPhone 檔案 · 本機下載紀錄</div>
+
+  <section class="panel">
+    <h2>① 從網址下載</h2>
+    <label for="url">音訊檔案直接網址</label>
+    <input id="url" type="url" inputmode="url" placeholder="https://example.com/music.mp3" autocomplete="url">
+    <div class="row">
+      <button id="downloadBtn">下載音訊</button>
+      <button id="openUrlBtn" class="secondary">開啟網址</button>
+    </div>
+    <progress id="progress" value="0" max="100" hidden></progress>
+    <div id="downloadStatus" class="status" role="status" aria-live="polite">等待輸入音訊直連網址。</div>
+    <div class="hint">請使用你有權下載、且網站直接提供的音訊檔案網址。若網站不允許跨來源讀取，請點「開啟網址」，再使用 Safari／網站提供的下載功能。下載完成後，使用分享選單中的「儲存到檔案」。</div>
+  </section>
+
+  <section class="panel">
+    <h2>② 匯入 iPhone 裡的音樂</h2>
+    <label class="file-label" for="filePicker">選擇「檔案」中的音樂</label>
+    <input id="filePicker" type="file" accept="audio/*,.mp3,.wav,.flac,.aac,.m4a,.ogg,.opus,.aiff,.wma" multiple>
+    <div class="hint">點選後會開啟 iOS 檔案選擇器。選取的檔案只在目前頁面工作期間可供預覽；網頁不會自動複製或移動你「檔案」App 裡的原始檔案。</div>
+    <div id="imports" class="file-list"><div class="empty">尚未匯入檔案。</div></div>
+  </section>
+
+  <section class="panel">
+    <h2>③ 本機下載紀錄</h2>
+    <div class="hint">紀錄保存在這個瀏覽器的本機儲存空間；清除 Safari 網站資料可能會移除紀錄。這裡不會上傳你的音樂。</div>
+    <div id="history" class="file-list"><div class="empty">目前沒有紀錄。</div></div>
+    <div class="row"><button id="clearHistory" class="secondary">清除紀錄</button></div>
+  </section>
+
+  <footer>
+    iOS 相容性提示：瀏覽器下載、跨來源請求、背景執行及續傳能力由 iOS、網站與伺服器決定。本頁不會繞過 DRM、登入限制或網站下載限制。若直接下載按鈕失敗，請使用「開啟網址」並依網站合法提供的下載方式操作。
+  </footer>
+</main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const urlInput = $("url");
+  const downloadBtn = $("downloadBtn");
+  const openUrlBtn = $("openUrlBtn");
+  const statusEl = $("downloadStatus");
+  const progressEl = $("progress");
+  const filePicker = $("filePicker");
+  const importsEl = $("imports");
+  const historyEl = $("history");
+  let importedFiles = [];
+  let activeController = null;
+
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem("musicDownloaderHistory") || "[]"); }
+    catch { return []; }
+  }
+  function saveHistory(items) {
+    try { localStorage.setItem("musicDownloaderHistory", JSON.stringify(items.slice(0, 80))); }
+    catch { /* private browsing/storage restrictions */ }
+    renderHistory();
+  }
+  function addHistory(entry) {
+    const items = loadHistory();
+    items.unshift({ time: new Date().toLocaleString(), ...entry });
+    saveHistory(items);
+  }
+  function fmtBytes(n) {
+    if (!Number.isFinite(n)) return "大小未知";
+    if (n < 1024) return `${n} B`;
+    const units = ["KB","MB","GB","TB"];
+    let i=-1; do { n/=1024; i++; } while(n>=1024 && i<units.length-1);
+    return `${n.toFixed(1)} ${units[i]}`;
+  }
+  function safeName(name) {
+    return (name || "audio-download").replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").slice(0,180) || "audio-download";
+  }
+  function nameFromUrl(url) {
+    try {
+      const u = new URL(url);
+      return safeName(decodeURIComponent(u.pathname.split("/").pop() || "audio-download"));
+    } catch { return "audio-download"; }
+  }
+  function renderHistory() {
+    const items = loadHistory();
+    historyEl.replaceChildren();
+    if (!items.length) {
+      historyEl.innerHTML = '<div class="empty">目前沒有紀錄。</div>';
+      return;
+    }
+    items.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "file-row";
+      const name = document.createElement("div"); name.className = "file-name"; name.textContent = item.name || "音訊檔案";
+      const meta = document.createElement("div"); meta.className = "meta"; meta.textContent = `${item.time || ""} · ${item.status || ""}${item.size ? " · " + item.size : ""}`;
+      row.append(name, meta);
+      if (item.url) {
+        const actions = document.createElement("div"); actions.className = "small-actions";
+        const open = document.createElement("button"); open.className = "secondary"; open.textContent = "再次開啟網址";
+        open.addEventListener("click", () => window.open(item.url, "_blank", "noopener,noreferrer"));
+        actions.append(open); row.append(actions);
+      }
+      historyEl.append(row);
+    });
+  }
+  function renderImports() {
+    importsEl.replaceChildren();
+    if (!importedFiles.length) {
+      importsEl.innerHTML = '<div class="empty">尚未匯入檔案。</div>'; return;
+    }
+    importedFiles.forEach((file, index) => {
+      const row = document.createElement("div"); row.className = "file-row";
+      const name = document.createElement("div"); name.className = "file-name"; name.textContent = file.name;
+      const meta = document.createElement("div"); meta.className = "meta"; meta.textContent = fmtBytes(file.size) + " · " + (file.type || "音訊檔案");
+      const actions = document.createElement("div"); actions.className = "small-actions";
+      const preview = document.createElement("button"); preview.textContent = "播放預覽";
+      preview.addEventListener("click", () => {
+        const audio = new Audio(URL.createObjectURL(file));
+        audio.controls = true;
+        const old = row.querySelector("audio"); if (old) old.remove();
+        audio.style.width = "100%"; audio.style.marginTop = "8px"; row.append(audio);
+        audio.play().catch(() => {});
+      });
+      const save = document.createElement("button"); save.className = "secondary"; save.textContent = "重新儲存副本";
+      save.addEventListener("click", () => saveBlob(file, file.name));
+      actions.append(preview, save); row.append(name, meta, actions); importsEl.append(row);
+    });
+  }
+  function saveBlob(blob, name) {
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl; a.download = safeName(name);
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    statusEl.textContent = "已送出儲存要求。若未自動儲存，請使用分享選單或 Safari 的下載項目。";
+    addHistory({ name, status: "已送出儲存要求", size: fmtBytes(blob.size) });
+  }
+  async function downloadAudio() {
+    const url = urlInput.value.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      statusEl.textContent = "請輸入完整的 http:// 或 https:// 音訊直連網址。"; return;
+    }
+    if (activeController) activeController.abort();
+    activeController = new AbortController();
+    downloadBtn.disabled = true; progressEl.hidden = false; progressEl.value = 0;
+    statusEl.textContent = "正在連線…";
+    try {
+      const response = await fetch(url, { mode: "cors", signal: activeController.signal });
+      if (!response.ok) throw new Error(`伺服器回應 ${response.status}`);
+      const type = (response.headers.get("Content-Type") || "").toLowerCase();
+      if (type.includes("text/html")) throw new Error("這是網頁而不是音訊檔案。");
+      const total = Number(response.headers.get("Content-Length") || 0);
+      let blob;
+      if (response.body && response.body.getReader) {
+        const reader = response.body.getReader();
+        const chunks = [];
+        let received = 0;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value); received += value.byteLength;
+          if (total) progressEl.value = received / total * 100;
+          statusEl.textContent = `下載中：${fmtBytes(received)}${total ? " / " + fmtBytes(total) : ""}`;
+        }
+        blob = new Blob(chunks, { type: response.headers.get("Content-Type") || "application/octet-stream" });
+      } else {
+        blob = await response.blob();
+      }
+      const name = nameFromUrl(url);
+      saveBlob(blob, name);
+      progressEl.value = 100;
+      statusEl.textContent = `下載完成：${name}。若 iPhone 沒有自動儲存，請依 Safari 提示操作。`;
+      addHistory({ name, url, status: "下載完成", size: fmtBytes(blob.size) });
+    } catch (error) {
+      if (error.name === "AbortError") {
+        statusEl.textContent = "下載已取消。";
+      } else {
+        statusEl.textContent = `無法由網頁直接下載：${error.message || error}。請改用「開啟網址」，並使用網站提供的下載／分享功能。`;
+        addHistory({ name: nameFromUrl(url), url, status: "直接下載受限：" + (error.message || "網頁限制") });
+      }
+    } finally {
+      downloadBtn.disabled = false;
+      activeController = null;
+    }
+  }
+  downloadBtn.addEventListener("click", downloadAudio);
+  openUrlBtn.addEventListener("click", () => {
+    const url = urlInput.value.trim();
+    if (!/^https?:\/\//i.test(url)) { statusEl.textContent = "請先輸入有效網址。"; return; }
+    addHistory({ name: nameFromUrl(url), url, status: "已開啟網址" });
+    window.open(url, "_blank", "noopener,noreferrer");
+  });
+  filePicker.addEventListener("change", event => {
+    importedFiles = Array.from(event.target.files || []);
+    renderImports();
+    importedFiles.forEach(file => addHistory({ name: file.name, status: "已選取本機檔案", size: fmtBytes(file.size) }));
+  });
+  $("clearHistory").addEventListener("click", () => {
+    if (confirm("確定清除本機下載紀錄？不會刪除音樂檔案。")) {
+      localStorage.removeItem("musicDownloaderHistory"); renderHistory();
+    }
+  });
+  renderHistory();
+})();
+</script>
+</body>
+</html>
